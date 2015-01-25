@@ -6,7 +6,7 @@
 CXX=g++
 CPPSTD=c++11
 CXXFLAGS=-Wall -Wextra -std=$(CPPSTD) -O0 -g --coverage
-LDFLAGS=-lgtest
+LDFLAGS=-lgtest -pthread
 TARGET=minijson_writer_tests
 HEADERS=minijson_writer.hpp
 MEMDEBUG=valgrind --leak-check=full
