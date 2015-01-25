@@ -1,7 +1,5 @@
 # minijson_writer
 
-[TOC]
-
 ## Motivation and design
 
 When writing JSON messages, some C/C++ libraries work by building an in-memory object for the sole purpose of serialising it as JSON. Many libraries comprise multiple header and source files and/or expose a complex API.
