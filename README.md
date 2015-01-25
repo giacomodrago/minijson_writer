@@ -160,6 +160,10 @@ Similarly, a functor can be provided to `write_array` (both the method and the s
 
 ## Remarks
 
+### Encodings
+
+**ASCII** and **UTF-8** strings are supported. The output encoding depends on the encoding of the input strings (field names and values), and no transformations are performed besides escaping control characters.
+
 ### Pretty-printing
 
 Pretty-printing is currently not supported.
