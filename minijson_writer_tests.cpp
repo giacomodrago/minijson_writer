@@ -1,7 +1,6 @@
 #include "minijson_writer.hpp"
 
 #include <sstream>
-#include <limits>
 
 #include <gtest/gtest.h>
 
