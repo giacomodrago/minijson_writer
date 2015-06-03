@@ -8,7 +8,7 @@ When writing JSON messages, some C/C++ libraries work by building an in-memory o
 
 Despite being a single header file of ~500 lines, `minijson_writer` is complete and can be easily extended to support custom types.
 
-`minijson_reader` (currently under development) will be the independent counterpart for parsing JSON messages.
+[`minijson_reader`](https://github.com/giacomodrago/minijson_reader) is the independent counterpart for parsing JSON messages.
 
 ## Dependencies
 
