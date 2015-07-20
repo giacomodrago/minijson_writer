@@ -6,6 +6,7 @@
 #include <iterator>
 #include <ostream>
 #include <iomanip>
+#include <locale>
 
 #define MJW_CPP11_SUPPORTED __cplusplus > 199711L || _MSC_VER >= 1800
 
@@ -63,8 +64,9 @@ struct get_value_type
 namespace
 {
 
-void adjust_stream_flags(std::ostream& stream)
+void adjust_stream_settings(std::ostream& stream)
 {
+    stream.imbue(std::locale::classic());
     stream << std::resetiosflags(std::ios::showpoint | std::ios::showpos);
     stream << std::dec << std::setw(0);
 }
@@ -225,7 +227,7 @@ protected:
             return;
         }
 
-        detail::adjust_stream_flags(*m_stream);
+        detail::adjust_stream_settings(*m_stream);
 
         next_field();
 
@@ -258,7 +260,7 @@ public:
             return;
         }
 
-        detail::adjust_stream_flags(*m_stream);
+        detail::adjust_stream_settings(*m_stream);
 
         if (m_status == EMPTY)
         {
@@ -353,7 +355,7 @@ public:
 
 inline object_writer object_writer::nested_object(const char* field_name)
 {
-    detail::adjust_stream_flags(stream());
+    detail::adjust_stream_settings(stream());
 
     next_field();
     write_field_name(field_name);
@@ -363,7 +365,7 @@ inline object_writer object_writer::nested_object(const char* field_name)
 
 inline array_writer object_writer::nested_array(const char* field_name)
 {
-    detail::adjust_stream_flags(stream());
+    detail::adjust_stream_settings(stream());
 
     next_field();
     write_field_name(field_name);
@@ -373,7 +375,7 @@ inline array_writer object_writer::nested_array(const char* field_name)
 
 inline object_writer array_writer::nested_object()
 {
-    detail::adjust_stream_flags(stream());
+    detail::adjust_stream_settings(stream());
 
     next_field();
 
@@ -382,7 +384,7 @@ inline object_writer array_writer::nested_object()
 
 inline array_writer array_writer::nested_array()
 {
-    detail::adjust_stream_flags(stream());
+    detail::adjust_stream_settings(stream());
 
     next_field();
 

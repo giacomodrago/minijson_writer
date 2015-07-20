@@ -320,6 +320,33 @@ TEST(minijson_writer, custom_value_writer_array)
     }
 }
 
+TEST(minijson_writer, remove_locale)
+{
+    std::stringstream stream;
+
+    try
+    {
+        stream.imbue(std::locale("en_US.utf8"));
+    }
+    catch (const std::runtime_error&)
+    {
+        // The locale is not supported: we can't run this test.
+        std::cout << "Locale not supported: cannot run test" << std::endl;
+        return;
+    }
+
+    stream << 1000.25;
+    ASSERT_EQ("1,000.25", stream.str());
+
+    stream.str("");
+
+    minijson::object_writer writer(stream);
+    writer.write("foo", 1000.25);
+    writer.close();
+
+    ASSERT_EQ("{\"foo\":1000.25}", stream.str());
+}
+
 int main(int argc, char** argv)
 {
     testing::InitGoogleTest(&argc, argv);
