@@ -347,6 +347,31 @@ TEST(minijson_writer, remove_locale)
     ASSERT_EQ("{\"foo\":1000.25}", stream.str());
 }
 
+TEST(minijson_writer, long_strings)
+{
+    std::ostringstream stream;
+    minijson::object_writer writer(stream);
+
+    writer.write("field0", "Lorem ipsum dolor sit amet");
+    writer.write("field1", true);
+    writer.write("field2", "f");
+    writer.write("field3", std::string("Quisque finibus sodales turpis eu commodo. "
+                                       "Cras scelerisque dignissim turpis,\nsed ullamcorper felis rutrum sed. "
+                                       "Vestibulum dictum elit turpis,\3 nec laoreet est rutrum ut."));
+    writer.write("field4", minijson::null);
+    writer.write("field5", 42);
+    writer.write("field6", "Aenean est mi, facilisis auctor tincidunt nec, ullamcorper ac ipsum. "
+                           "Aliquam metus quam, auctor nec tortor in, scelerisque porta nulla. "
+                           "Nulla facilisis scelerisque ipsum, in sagittis lorem scelerisque at. "
+                           "Morbi tincidunt orci vel porttitor fringilla. Nullam tristique justo ut ultricies tincidunt. "
+                           "Phasellus eu magna dolor. Mauris ut aliquet velit. Nullam id faucibus justo. "
+                           "Fusce ultricies blandit lacinia. Nulla auctor augue mi, sit amet consectetur ante imperdiet ac.");
+    writer.write("field7", 42.42);
+    writer.close();
+
+    ASSERT_EQ(777, stream.str().size());
+}
+
 int main(int argc, char** argv)
 {
     testing::InitGoogleTest(&argc, argv);
