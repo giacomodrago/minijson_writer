@@ -166,7 +166,7 @@ Similarly, a functor can be provided to `write_array` (both the method and the s
 
 ### Pretty-printing
 
-Pretty-printing is currently not supported.
+Pretty-printing is available using the optional `indent` parameter of `object_writer` or `array_writer`. When an integer is passed, nested structures are each indented that number of spaces. When a string is passed, that string is used for indenting (to support tab indenting).
 
 ### The stream
 

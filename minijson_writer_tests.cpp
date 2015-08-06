@@ -347,6 +347,85 @@ TEST(minijson_writer, remove_locale)
     ASSERT_EQ("{\"foo\":1000.25}", stream.str());
 }
 
+TEST(minijson_writer, pretty_print_object)
+{
+    std::stringstream stream;
+
+    minijson::object_writer writer(stream, 2);
+    writer.write("foo", 5);
+    writer.write("bar", "six");
+    writer.close();
+
+    ASSERT_EQ(
+        "{\n"
+        "  \"foo\": 5,\n"
+        "  \"bar\": \"six\"\n"
+        "}", stream.str());
+}
+
+TEST(minijson_writer, pretty_print_array)
+{
+    std::stringstream stream;
+
+    minijson::array_writer writer(stream, 4);
+    writer.write(5);
+    writer.write("six");
+    writer.close();
+
+    ASSERT_EQ(
+        "[\n"
+        "    5,\n"
+        "    \"six\"\n"
+        "]", stream.str());
+}
+
+TEST(minijson_writer, pretty_print_nesting_complex)
+{
+    std::stringstream stream;
+
+    minijson::array_writer writer(stream, "\t");
+    writer.write("value1");
+    {
+        minijson::object_writer nested_writer1 = writer.nested_object();
+        nested_writer1.write("field2", "value2");
+        {
+            minijson::array_writer nested_writer2 = nested_writer1.nested_array("nested2");
+            nested_writer2.write("value3");
+            nested_writer2.write("value4");
+            {
+                minijson::array_writer nested_writer3 = nested_writer2.nested_array();
+                nested_writer3.write("value5");
+                nested_writer3.nested_object().close();
+                nested_writer3.close();
+            }
+            nested_writer2.write("value6");
+            nested_writer2.close();
+        }
+        nested_writer1.nested_array("nestedempty").close();
+        nested_writer1.close();
+    }
+    writer.close();
+
+    ASSERT_EQ(
+        "[\n"
+        "\t\"value1\",\n"
+        "\t{\n"
+        "\t\t\"field2\": \"value2\",\n"
+        "\t\t\"nested2\": [\n"
+        "\t\t\t\"value3\",\n"
+        "\t\t\t\"value4\",\n"
+        "\t\t\t[\n"
+        "\t\t\t\t\"value5\",\n"
+        "\t\t\t\t{}\n"
+        "\t\t\t],\n"
+        "\t\t\t\"value6\"\n"
+        "\t\t],\n"
+        "\t\t\"nestedempty\": []\n"
+        "\t}\n"
+        "]",
+        stream.str());
+}
+
 int main(int argc, char** argv)
 {
     testing::InitGoogleTest(&argc, argv);

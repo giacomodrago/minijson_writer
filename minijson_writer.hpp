@@ -159,6 +159,9 @@ public:
 
 class writer
 {
+    friend class object_writer;
+    friend class array_writer;
+
 private:
 
     enum status
@@ -169,6 +172,8 @@ private:
     };
 
     bool m_array;
+    std::string m_indent;
+    int m_depth;
     status m_status;
     std::ostream* m_stream;
 
@@ -203,10 +208,32 @@ protected:
         if (m_status == EMPTY)
         {
             write_opening_bracket();
+
+            if (!m_indent.empty())
+            {
+                ++m_depth;
+
+                *m_stream << '\n';
+
+                for (int i = 0; i < m_depth; ++i)
+                {
+                    *m_stream << m_indent;
+                }
+            }
         }
         else if (m_status == OPEN)
         {
             *m_stream << ',';
+
+            if (!m_indent.empty())
+            {
+                *m_stream << '\n';
+
+                for (int i = 0; i < m_depth; ++i)
+                {
+                    *m_stream << m_indent;
+                }
+            }
         }
 
         m_status = OPEN;
@@ -217,6 +244,11 @@ protected:
         detail::write_quoted_string(*m_stream, name);
 
         *m_stream << ':';
+
+        if (!m_indent.empty())
+        {
+            *m_stream << ' ';
+        }
     }
 
     template<typename V, typename ValueWriter>
@@ -239,8 +271,10 @@ protected:
         value_writer(*m_stream, value);
     }
 
-    explicit writer(std::ostream& stream, bool array) :
+    explicit writer(std::ostream& stream, bool array, const std::string& indent, int depth) :
         m_array(array),
+        m_indent(indent),
+        m_depth(depth),
         m_status(EMPTY),
         m_stream(&stream)
     {
@@ -266,6 +300,17 @@ public:
         {
             write_opening_bracket();
         }
+        else if (!m_indent.empty())
+        {
+            --m_depth;
+
+            *m_stream << '\n';
+
+            for (int i = 0; i < m_depth; ++i)
+            {
+                *m_stream << m_indent;
+            }
+        }
 
         write_closing_bracket();
 
@@ -281,7 +326,15 @@ class object_writer : public writer
 {
 public:
 
-    explicit object_writer(std::ostream& stream) : writer(stream, false)
+    explicit object_writer(std::ostream& stream, const std::string& indent = std::string()) : writer(stream, false, indent, 0)
+    {
+    }
+
+    explicit object_writer(std::ostream& stream, int indent) : writer(stream, false, std::string(indent, ' '), 0)
+    {
+    }
+
+    explicit object_writer(std::ostream& stream, const writer& outer) : writer(stream, false, outer.m_indent, outer.m_depth)
     {
     }
 
@@ -319,7 +372,15 @@ class array_writer : public writer
 {
 public:
 
-    explicit array_writer(std::ostream& stream) : writer(stream, true)
+    explicit array_writer(std::ostream& stream, const std::string& indent = std::string()) : writer(stream, true, indent, 0)
+    {
+    }
+
+    explicit array_writer(std::ostream& stream, int indent) : writer(stream, true, std::string(indent, ' '), 0)
+    {
+    }
+
+    explicit array_writer(std::ostream& stream, const writer& outer) : writer(stream, true, outer.m_indent, outer.m_depth)
     {
     }
 
@@ -360,7 +421,7 @@ inline object_writer object_writer::nested_object(const char* field_name)
     next_field();
     write_field_name(field_name);
 
-    return object_writer(stream());
+    return object_writer(stream(), *this);
 }
 
 inline array_writer object_writer::nested_array(const char* field_name)
@@ -370,7 +431,7 @@ inline array_writer object_writer::nested_array(const char* field_name)
     next_field();
     write_field_name(field_name);
 
-    return array_writer(stream());
+    return array_writer(stream(), *this);
 }
 
 inline object_writer array_writer::nested_object()
@@ -379,7 +440,7 @@ inline object_writer array_writer::nested_object()
 
     next_field();
 
-    return object_writer(stream());
+    return object_writer(stream(), *this);
 }
 
 inline array_writer array_writer::nested_array()
@@ -388,7 +449,7 @@ inline array_writer array_writer::nested_array()
 
     next_field();
 
-    return array_writer(stream());
+    return array_writer(stream(), *this);
 }
 
 template<>
