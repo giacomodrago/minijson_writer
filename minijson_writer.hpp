@@ -63,6 +63,67 @@ struct get_value_type
     typedef typename MJW_LIB_NS::remove_cv<typename std::iterator_traits<InputIt>::value_type>::type type;
 };
 
+template<typename Functor>
+struct two_or_three_args_functor : Functor
+{
+    explicit two_or_three_args_functor(const Functor& functor) :
+        Functor(functor)
+    {
+    }
+
+    using Functor::operator();
+
+    template<typename Arg1, typename Arg2, typename Arg3>
+    void operator()(Arg1& arg1, Arg2& arg2, Arg3&) const
+    {
+        operator()(arg1, arg2);
+    }
+};
+
+template<typename R, typename X1, typename X2>
+struct two_or_three_args_functor<R (*)(X1, X2)>
+{
+    typedef R (*Function)(X1, X2);
+
+    Function function;
+
+    explicit two_or_three_args_functor(const Function& function) :
+        function(function)
+    {
+    }
+
+    template<typename Arg1, typename Arg2, typename Arg3>
+    void operator()(Arg1& arg1, Arg2& arg2, Arg3&) const
+    {
+        function(arg1, arg2);
+    }
+};
+
+template<typename R, typename X1, typename X2, typename X3>
+struct two_or_three_args_functor<R (*)(X1, X2, X3)>
+{
+    typedef R (*Function)(X1, X2, X3);
+
+    Function function;
+
+    explicit two_or_three_args_functor(const Function& function) :
+        function(function)
+    {
+    }
+
+    template<typename Arg1, typename Arg2, typename Arg3>
+    void operator()(Arg1& arg1, Arg2& arg2, Arg3& arg3) const
+    {
+        function(arg1, arg2, arg3);
+    }
+};
+
+template<typename Functor>
+two_or_three_args_functor<Functor> wrap_two_or_three_args_functor(const Functor& functor)
+{
+    return two_or_three_args_functor<Functor>(functor);
+}
+
 template<size_t Size = 128>
 class buffered_writer
 {
@@ -218,6 +279,11 @@ public:
 
 } // namespace detail
 
+class writer_configuration
+{
+    // TODO
+};
+
 class writer
 {
 private:
@@ -232,6 +298,7 @@ private:
     bool m_array;
     status m_status;
     std::ostream* m_stream;
+    writer_configuration m_configuration;
 
     void write_opening_bracket()
     {
@@ -297,13 +364,14 @@ protected:
             write_field_name(field_name);
         }
 
-        value_writer(*m_stream, value);
+        detail::wrap_two_or_three_args_functor(value_writer)(*m_stream, value, configuration());
     }
 
-    explicit writer(std::ostream& stream, bool array) :
+    explicit writer(std::ostream& stream, bool array, const writer_configuration& configuration) :
         m_array(array),
         m_status(EMPTY),
-        m_stream(&stream)
+        m_stream(&stream),
+        m_configuration(configuration)
     {
     }
 
@@ -312,6 +380,11 @@ public:
     std::ostream& stream() const
     {
         return *m_stream;
+    }
+
+    const writer_configuration& configuration() const
+    {
+        return m_configuration;
     }
 
     void close()
@@ -342,7 +415,8 @@ class object_writer : public writer
 {
 public:
 
-    explicit object_writer(std::ostream& stream) : writer(stream, false)
+    explicit object_writer(std::ostream& stream, const writer_configuration& configuration = writer_configuration()) :
+        writer(stream, false, configuration)
     {
     }
 
@@ -380,7 +454,8 @@ class array_writer : public writer
 {
 public:
 
-    explicit array_writer(std::ostream& stream) : writer(stream, true)
+    explicit array_writer(std::ostream& stream, const writer_configuration& configuration = writer_configuration()) :
+        writer(stream, true, configuration)
     {
     }
 
@@ -421,7 +496,7 @@ inline object_writer object_writer::nested_object(const char* field_name)
     next_field();
     write_field_name(field_name);
 
-    return object_writer(stream());
+    return object_writer(stream(), configuration());
 }
 
 inline array_writer object_writer::nested_array(const char* field_name)
@@ -431,7 +506,7 @@ inline array_writer object_writer::nested_array(const char* field_name)
     next_field();
     write_field_name(field_name);
 
-    return array_writer(stream());
+    return array_writer(stream(), configuration());
 }
 
 inline object_writer array_writer::nested_object()
@@ -440,7 +515,7 @@ inline object_writer array_writer::nested_object()
 
     next_field();
 
-    return object_writer(stream());
+    return object_writer(stream(), configuration());
 }
 
 inline array_writer array_writer::nested_array()
@@ -449,7 +524,7 @@ inline array_writer array_writer::nested_array()
 
     next_field();
 
-    return array_writer(stream());
+    return array_writer(stream(), configuration());
 }
 
 template<>

@@ -263,9 +263,9 @@ namespace minijson
 template<>
 struct default_value_writer<point3d>
 {
-    void operator()(std::ostream& stream, const point3d& value) const
+    void operator()(std::ostream& stream, const point3d& value, const minijson::writer_configuration& configuration) const
     {
-        minijson::object_writer writer(stream);
+        minijson::object_writer writer(stream, configuration);
         writer.write("x", value.x);
         writer.write("y", value.y);
         writer.write("z", value.z);
