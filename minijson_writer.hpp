@@ -36,14 +36,26 @@ enum null_t
     null = 0
 };
 
+class writer_configuration
+{
+    // TODO
+};
+
 template<typename V, typename Enable = void>
 struct default_value_writer;
 
 template<typename InputIt>
-void write_array(std::ostream& stream, InputIt begin, InputIt end);
+void write_array(
+        std::ostream& stream,
+        InputIt begin, InputIt end,
+        const writer_configuration& configuration = writer_configuration());
 
 template<typename InputIt, typename ValueWriter>
-void write_array(std::ostream& stream, InputIt begin, InputIt end, ValueWriter value_writer);
+void write_array(
+        std::ostream& stream,
+        InputIt begin, InputIt end,
+        ValueWriter value_writer,
+        const writer_configuration& configuration = writer_configuration());
 
 namespace detail
 {
@@ -271,18 +283,13 @@ public:
     {
     }
 
-    void operator()(std::ostream& stream, const range<InputIt>& range) const
+    void operator()(std::ostream& stream, const range<InputIt>& range, const writer_configuration& configuration) const
     {
-        write_array(stream, range.begin, range.end, m_value_writer);
+        write_array(stream, range.begin, range.end, m_value_writer, configuration);
     }
 };
 
 } // namespace detail
-
-class writer_configuration
-{
-    // TODO
-};
 
 class writer
 {
@@ -629,15 +636,22 @@ struct default_value_writer<std::string>
 };
 
 template<typename InputIt>
-void write_array(std::ostream& stream, InputIt begin, InputIt end)
+void write_array(
+        std::ostream& stream,
+        InputIt begin, InputIt end,
+        const writer_configuration& configuration)
 {
-    write_array(stream, begin, end, default_value_writer<typename detail::get_value_type<InputIt>::type>());
+    write_array(stream, begin, end, default_value_writer<typename detail::get_value_type<InputIt>::type>(), configuration);
 }
 
 template<typename InputIt, typename ValueWriter>
-void write_array(std::ostream& stream, InputIt begin, InputIt end, ValueWriter value_writer)
+void write_array(
+        std::ostream& stream,
+        InputIt begin, InputIt end,
+        ValueWriter value_writer,
+        const writer_configuration& configuration)
 {
-    array_writer writer(stream);
+    array_writer writer(stream, configuration);
 
     for (InputIt it = begin; it != end; ++it)
     {
