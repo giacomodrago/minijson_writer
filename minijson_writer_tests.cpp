@@ -372,6 +372,112 @@ TEST(minijson_writer, long_strings)
     ASSERT_EQ(777, stream.str().size());
 }
 
+TEST(minijson_writer, pretty_printing_nested)
+{
+    std::stringstream stream;
+
+    minijson::array_writer writer(stream, minijson::writer_configuration().pretty_printing(true));
+    writer.write("value1");
+    {
+        minijson::object_writer nested_writer1 = writer.nested_object();
+        nested_writer1.write("field2", "value2");
+        {
+            minijson::array_writer nested_writer2 = nested_writer1.nested_array("nested2");
+            nested_writer2.write("value3");
+            nested_writer2.write("value4");
+            {
+                minijson::array_writer nested_writer3 = nested_writer2.nested_array();
+                nested_writer3.write("value5");
+                nested_writer3.nested_object().close();
+                nested_writer3.close();
+            }
+            nested_writer2.write("value6");
+            nested_writer2.close();
+        }
+        nested_writer1.nested_array("nestedempty").close();
+        nested_writer1.close();
+    }
+    writer.close();
+
+    const std::string expected =
+        "[\n"
+        "    \"value1\",\n"
+        "    {\n"
+        "        \"field2\": \"value2\",\n"
+        "        \"nested2\": [\n"
+        "            \"value3\",\n"
+        "            \"value4\",\n"
+        "            [\n"
+        "                \"value5\",\n"
+        "                {}\n"
+        "            ],\n"
+        "            \"value6\"\n"
+        "        ],\n"
+        "        \"nestedempty\": []\n"
+        "    }\n"
+        "]";
+
+    ASSERT_EQ(expected, stream.str());
+}
+
+TEST(minijson_writer, pretty_printing_nested_functor)
+{
+    std::stringstream stream;
+
+    std::vector<point3d> points(2);
+    const point3d point0 = { -1, 1, 0 };
+    const point3d point1 = { 2, 3, 4 };
+    points[0] = point0;
+    points[1] = point1;
+
+    minijson::object_writer writer(stream, minijson::writer_configuration().pretty_printing(true).use_tabs(true));
+    writer.write("point1", points[0]);
+    writer.write_array("array1", points.begin(), points.end());
+    writer.close();
+
+    const std::string expected =
+        "{\n"
+        "\t\"point1\": {\n"
+        "\t\t\"x\": -1,\n"
+        "\t\t\"y\": 1,\n"
+        "\t\t\"z\": 0\n"
+        "\t},\n"
+        "\t\"array1\": [\n"
+        "\t\t{\n"
+        "\t\t\t\"x\": -1,\n"
+        "\t\t\t\"y\": 1,\n"
+        "\t\t\t\"z\": 0\n"
+        "\t\t},\n"
+        "\t\t{\n"
+        "\t\t\t\"x\": 2,\n"
+        "\t\t\t\"y\": 3,\n"
+        "\t\t\t\"z\": 4\n"
+        "\t\t}\n"
+        "\t]\n"
+        "}";
+
+    ASSERT_EQ(expected, stream.str());
+}
+
+TEST(minijson_writer, pretty_printing_write_array)
+{
+    std::vector<std::string> elements;
+    elements.push_back("foo");
+    elements.push_back("bar");
+
+    std::stringstream stream;
+    minijson::write_array(stream, elements.begin(), elements.end(),
+            minijson::writer_configuration().pretty_printing(true).indent_spaces(2));
+
+    const std::string expected =
+        "[\n"
+        "  \"foo\",\n"
+        "  \"bar\"\n"
+        "]";
+
+    ASSERT_EQ(expected, stream.str());
+}
+
 int main(int argc, char** argv)
 {
     testing::InitGoogleTest(&argc, argv);

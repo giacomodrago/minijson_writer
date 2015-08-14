@@ -38,7 +38,74 @@ enum null_t
 
 class writer_configuration
 {
-    // TODO
+private:
+
+    size_t m_nesting_level;
+    bool m_pretty_printing;
+    size_t m_indent_spaces;
+    bool m_use_tabs;
+
+public:
+
+    explicit writer_configuration() :
+        m_nesting_level(0),
+        m_pretty_printing(false),
+        m_indent_spaces(4),
+        m_use_tabs(false)
+    {
+    }
+
+    size_t nesting_level() const
+    {
+        return m_nesting_level;
+    }
+
+    writer_configuration increase_nesting_level() const
+    {
+        writer_configuration result = *this;
+        result.m_nesting_level++;
+
+        return result;
+    }
+
+    bool pretty_printing() const
+    {
+        return m_pretty_printing;
+    }
+
+    writer_configuration pretty_printing(bool value) const
+    {
+        writer_configuration result = *this;
+        result.m_pretty_printing = value;
+
+        return result;
+    }
+
+    size_t indent_spaces() const
+    {
+        return m_indent_spaces;
+    }
+
+    writer_configuration indent_spaces(size_t value) const
+    {
+        writer_configuration result = *this;
+        result.m_indent_spaces = value;
+
+        return result;
+    }
+
+    bool use_tabs() const
+    {
+        return m_use_tabs;
+    }
+
+    writer_configuration use_tabs(bool value) const
+    {
+        writer_configuration result = *this;
+        result.m_use_tabs = value;
+
+        return result;
+    }
 };
 
 template<typename V, typename Enable = void>
@@ -307,6 +374,44 @@ private:
     std::ostream* m_stream;
     writer_configuration m_configuration;
 
+    enum pretty_print_token
+    {
+        BEFORE_ELEMENT,
+        AFTER_COLON,
+        BEFORE_CLOSING_BRACKET
+    };
+
+    void write_pretty_print_token(pretty_print_token token)
+    {
+        if (!m_configuration.pretty_printing())
+        {
+            return;
+        }
+
+        detail::buffered_writer<16> writer(*m_stream);
+
+        if ((token == BEFORE_ELEMENT) || ((token == BEFORE_CLOSING_BRACKET) && (m_status != EMPTY)))
+        {
+            const size_t base_depth = (token == BEFORE_ELEMENT) ? 1 : 0;
+            const size_t no_indent_characters = m_configuration.use_tabs() ?
+                    (base_depth + m_configuration.nesting_level()) :
+                    (base_depth + m_configuration.nesting_level()) * m_configuration.indent_spaces();
+
+            writer << '\n';
+
+            for (size_t i = 0; i < no_indent_characters; i++)
+            {
+                writer << ((m_configuration.use_tabs()) ? '\t' : ' ');
+            }
+        }
+        else if (token == AFTER_COLON)
+        {
+            writer << ' ';
+        }
+
+        writer.flush();
+    }
+
     void write_opening_bracket()
     {
         if (m_array)
@@ -321,6 +426,8 @@ private:
 
     void write_closing_bracket()
     {
+        write_pretty_print_token(BEFORE_CLOSING_BRACKET);
+
         if (m_array)
         {
             *m_stream << ']';
@@ -344,6 +451,8 @@ protected:
             *m_stream << ',';
         }
 
+        write_pretty_print_token(BEFORE_ELEMENT);
+
         m_status = OPEN;
     }
 
@@ -352,6 +461,8 @@ protected:
         detail::write_quoted_string(*m_stream, name);
 
         *m_stream << ':';
+
+        write_pretty_print_token(AFTER_COLON);
     }
 
     template<typename V, typename ValueWriter>
@@ -371,7 +482,8 @@ protected:
             write_field_name(field_name);
         }
 
-        detail::wrap_two_or_three_args_functor(value_writer)(*m_stream, value, configuration());
+        const writer_configuration nested_object_configuration = m_configuration.increase_nesting_level();
+        detail::wrap_two_or_three_args_functor(value_writer)(*m_stream, value, nested_object_configuration);
     }
 
     explicit writer(std::ostream& stream, bool array, const writer_configuration& configuration) :
@@ -503,7 +615,7 @@ inline object_writer object_writer::nested_object(const char* field_name)
     next_field();
     write_field_name(field_name);
 
-    return object_writer(stream(), configuration());
+    return object_writer(stream(), configuration().increase_nesting_level());
 }
 
 inline array_writer object_writer::nested_array(const char* field_name)
@@ -513,7 +625,7 @@ inline array_writer object_writer::nested_array(const char* field_name)
     next_field();
     write_field_name(field_name);
 
-    return array_writer(stream(), configuration());
+    return array_writer(stream(), configuration().increase_nesting_level());
 }
 
 inline object_writer array_writer::nested_object()
@@ -522,7 +634,7 @@ inline object_writer array_writer::nested_object()
 
     next_field();
 
-    return object_writer(stream(), configuration());
+    return object_writer(stream(), configuration().increase_nesting_level());
 }
 
 inline array_writer array_writer::nested_array()
@@ -531,7 +643,7 @@ inline array_writer array_writer::nested_array()
 
     next_field();
 
-    return array_writer(stream(), configuration());
+    return array_writer(stream(), configuration().increase_nesting_level());
 }
 
 template<>
