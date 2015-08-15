@@ -369,7 +369,7 @@ TEST(minijson_writer, long_strings)
     writer.write("field7", 42.42);
     writer.close();
 
-    ASSERT_EQ(777, stream.str().size());
+    ASSERT_EQ(777U, stream.str().size());
 }
 
 int main(int argc, char** argv)
