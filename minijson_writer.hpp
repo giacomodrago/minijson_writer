@@ -2,18 +2,19 @@
 #define MINIJSON_WRITER_H
 
 #include <cstddef>
-#include <string>
-#include <iterator>
-#include <ostream>
 #include <iomanip>
+#include <iterator>
 #include <locale>
+#include <ostream>
+#include <string>
+#include <utility>
 
 #define MJW_CPP11_SUPPORTED __cplusplus > 199711L || _MSC_VER >= 1800
 
 #if MJW_CPP11_SUPPORTED
 
-#include <type_traits>
 #include <cmath>
+#include <type_traits>
 #define MJW_LIB_NS std
 #define MJW_ISFINITE(X) std::isfinite(X)
 #define MJW_STATIC_ASSERT(COND, MESSAGE) static_assert(COND, MESSAGE)
@@ -142,6 +143,51 @@ struct get_value_type
     typedef typename MJW_LIB_NS::remove_cv<typename std::iterator_traits<InputIt>::value_type>::type type;
 };
 
+#if MJW_CPP11_SUPPORTED
+
+template<typename Functor>
+struct two_or_three_args_functor
+{
+private:
+
+    Functor functor;
+
+    struct dummy_base
+    {
+    };
+
+    struct dummy_derived : dummy_base
+    {
+    };
+
+    template<typename Arg1, typename Arg2, typename Arg3>
+    auto operator_impl(Arg1& arg1, Arg2& arg2, Arg3& arg3, const dummy_derived&) const -> decltype(functor(arg1, arg2, arg3), void())
+    {
+        functor(arg1, arg2, arg3);
+    }
+
+    template<typename Arg1, typename Arg2, typename Arg3>
+    auto operator_impl(Arg1& arg1, Arg2& arg2, Arg3&, const dummy_base&) const -> void
+    {
+        functor(arg1, arg2);
+    }
+
+public:
+
+    explicit two_or_three_args_functor(Functor functor) :
+        functor(std::move(functor))
+    {
+    }
+
+    template<typename Arg1, typename Arg2, typename Arg3>
+    void operator()(Arg1& arg1, Arg2& arg2, Arg3& arg3) const
+    {
+        operator_impl(arg1, arg2, arg3, dummy_derived());
+    }
+};
+
+#else
+
 template<typename Functor>
 struct two_or_three_args_functor : Functor
 {
@@ -158,6 +204,8 @@ struct two_or_three_args_functor : Functor
         operator()(arg1, arg2);
     }
 };
+
+#endif
 
 template<typename R, typename X1, typename X2>
 struct two_or_three_args_functor<R (*)(X1, X2)>

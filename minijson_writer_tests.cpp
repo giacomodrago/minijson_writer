@@ -6,6 +6,12 @@
 
 #define CPP11_SUPPORTED __cplusplus > 199711L || _MSC_VER >= 1800
 
+#if CPP11_SUPPORTED
+#define FINAL final
+#else
+#define FINAL
+#endif
+
 TEST(minijson_writer, empty_object)
 {
     std::stringstream stream;
@@ -238,7 +244,7 @@ struct point3d
     double z;
 };
 
-struct point_type_writer
+struct point_type_writer FINAL
 {
     void operator()(std::ostream& stream, point_type value) const
     {
@@ -261,7 +267,7 @@ namespace minijson
 {
 
 template<>
-struct default_value_writer<point3d>
+struct default_value_writer<point3d> FINAL
 {
     void operator()(std::ostream& stream, const point3d& value, const minijson::writer_configuration& configuration) const
     {
