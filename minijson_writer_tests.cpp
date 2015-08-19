@@ -246,9 +246,9 @@ struct point3d
 
 struct point_type_writer FINAL
 {
-    void operator()(std::ostream& stream, point_type value) const
+    void operator()(std::ostream& stream, point_type value) /* intentionally non-const */
     {
-        const char* str;
+        const char* str = "";
         switch (value)
         {
         case FIXED:
@@ -262,6 +262,11 @@ struct point_type_writer FINAL
         minijson::default_value_writer<char*>()(stream, str);
     }
 };
+
+void point_type_writer_func(std::ostream& stream, point_type value)
+{
+    point_type_writer()(stream, value);
+}
 
 namespace minijson
 {
@@ -287,16 +292,16 @@ TEST(minijson_writer, custom_value_writer_object)
 
     std::stringstream stream;
 
-    const point_type type = MOVING;
     const point3d point = { -1, 1, 0 };
 
     minijson::object_writer writer(stream);
-    writer.write("type", type, point_type_writer()); // using functor
+    writer.write("type1", FIXED, point_type_writer()); // using functor
+    writer.write("type2", MOVING, point_type_writer_func); // using function
     writer.write("point", point); // using template specialisation
     writer.write_array("types", types, types + 2, point_type_writer()); // write_array with functor
     writer.close();
 
-    ASSERT_EQ("{\"type\":\"moving\",\"point\":{\"x\":-1,\"y\":1,\"z\":0},\"types\":[\"fixed\",\"moving\"]}", stream.str());
+    ASSERT_EQ("{\"type1\":\"fixed\",\"type2\":\"moving\",\"point\":{\"x\":-1,\"y\":1,\"z\":0},\"types\":[\"fixed\",\"moving\"]}", stream.str());
 }
 
 TEST(minijson_writer, custom_value_writer_array)

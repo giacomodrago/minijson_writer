@@ -145,6 +145,18 @@ struct get_value_type
 
 #if MJW_CPP11_SUPPORTED
 
+template<size_t Rank>
+struct overload_rank : overload_rank<Rank - 1>
+{
+};
+
+template<>
+struct overload_rank<0>
+{
+};
+
+typedef overload_rank<63> call_ranked;
+
 template<typename Functor>
 struct two_or_three_args_functor
 {
@@ -152,22 +164,14 @@ private:
 
     Functor functor;
 
-    struct dummy_base
-    {
-    };
-
-    struct dummy_derived : dummy_base
-    {
-    };
-
     template<typename Arg1, typename Arg2, typename Arg3>
-    auto operator_impl(Arg1& arg1, Arg2& arg2, Arg3& arg3, const dummy_derived&) const -> decltype(functor(arg1, arg2, arg3), void())
+    auto operator_impl(Arg1& arg1, Arg2& arg2, Arg3& arg3, overload_rank<1>) -> decltype(functor(arg1, arg2, arg3), void())
     {
         functor(arg1, arg2, arg3);
     }
 
     template<typename Arg1, typename Arg2, typename Arg3>
-    auto operator_impl(Arg1& arg1, Arg2& arg2, Arg3&, const dummy_base&) const -> void
+    auto operator_impl(Arg1& arg1, Arg2& arg2, Arg3&, overload_rank<0>) -> void
     {
         functor(arg1, arg2);
     }
@@ -180,9 +184,9 @@ public:
     }
 
     template<typename Arg1, typename Arg2, typename Arg3>
-    void operator()(Arg1& arg1, Arg2& arg2, Arg3& arg3) const
+    void operator()(Arg1& arg1, Arg2& arg2, Arg3& arg3)
     {
-        operator_impl(arg1, arg2, arg3, dummy_derived());
+        operator_impl(arg1, arg2, arg3, call_ranked());
     }
 };
 
@@ -201,11 +205,11 @@ struct two_or_three_args_functor : Functor
     template<typename Arg1, typename Arg2, typename Arg3>
     void operator()(Arg1& arg1, Arg2& arg2, Arg3&) const
     {
-        operator()(arg1, arg2);
+        Functor& instance = const_cast<Functor&>(static_cast<const Functor&>(*this));
+
+        instance(arg1, arg2);
     }
 };
-
-#endif
 
 template<typename R, typename X1, typename X2>
 struct two_or_three_args_functor<R (*)(X1, X2)>
@@ -214,7 +218,7 @@ struct two_or_three_args_functor<R (*)(X1, X2)>
 
     Function function;
 
-    explicit two_or_three_args_functor(const Function& function) :
+    explicit two_or_three_args_functor(Function function) :
         function(function)
     {
     }
@@ -233,7 +237,7 @@ struct two_or_three_args_functor<R (*)(X1, X2, X3)>
 
     Function function;
 
-    explicit two_or_three_args_functor(const Function& function) :
+    explicit two_or_three_args_functor(Function function) :
         function(function)
     {
     }
@@ -244,6 +248,8 @@ struct two_or_three_args_functor<R (*)(X1, X2, X3)>
         function(arg1, arg2, arg3);
     }
 };
+
+#endif
 
 template<typename Functor>
 two_or_three_args_functor<Functor> wrap_two_or_three_args_functor(const Functor& functor)
