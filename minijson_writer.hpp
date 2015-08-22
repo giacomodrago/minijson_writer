@@ -122,7 +122,7 @@ template<typename InputIt, typename ValueWriter>
 void write_array(
         std::ostream& stream,
         InputIt begin, InputIt end,
-        ValueWriter value_writer,
+        const ValueWriter& value_writer,
         const writer_configuration& configuration = writer_configuration());
 
 namespace detail
@@ -165,15 +165,17 @@ private:
     Functor functor;
 
     template<typename Arg1, typename Arg2, typename Arg3>
-    auto operator_impl(Arg1& arg1, Arg2& arg2, Arg3& arg3, overload_rank<1>) -> decltype(functor(arg1, arg2, arg3), void())
+    auto operator_impl(Arg1&& arg1, Arg2&& arg2, Arg3&& arg3, overload_rank<1>)
+        -> decltype(functor(std::forward<Arg1>(arg1), std::forward<Arg2>(arg2), std::forward<Arg3>(arg3)))
     {
-        functor(arg1, arg2, arg3);
+        functor(std::forward<Arg1>(arg1), std::forward<Arg2>(arg2), std::forward<Arg3>(arg3));
     }
 
     template<typename Arg1, typename Arg2, typename Arg3>
-    auto operator_impl(Arg1& arg1, Arg2& arg2, Arg3&, overload_rank<0>) -> void
+    auto operator_impl(Arg1&& arg1, Arg2&& arg2, Arg3&&, overload_rank<0>)
+        -> decltype(functor(std::forward<Arg1>(arg1), std::forward<Arg2>(arg2)))
     {
-        functor(arg1, arg2);
+        functor(std::forward<Arg1>(arg1), std::forward<Arg2>(arg2));
     }
 
 public:
@@ -184,9 +186,9 @@ public:
     }
 
     template<typename Arg1, typename Arg2, typename Arg3>
-    void operator()(Arg1& arg1, Arg2& arg2, Arg3& arg3)
+    void operator()(Arg1&& arg1, Arg2&& arg2, Arg3&& arg3)
     {
-        operator_impl(arg1, arg2, arg3, call_ranked());
+        operator_impl(std::forward<Arg1>(arg1), std::forward<Arg2>(arg2), std::forward<Arg3>(arg3), call_ranked());
     }
 };
 
@@ -195,8 +197,11 @@ public:
 template<typename Functor>
 struct two_or_three_args_functor : Functor
 {
+    mutable Functor functor;
+
     explicit two_or_three_args_functor(const Functor& functor) :
-        Functor(functor)
+        Functor(functor),
+        functor(functor)
     {
     }
 
@@ -205,9 +210,7 @@ struct two_or_three_args_functor : Functor
     template<typename Arg1, typename Arg2, typename Arg3>
     void operator()(Arg1& arg1, Arg2& arg2, Arg3&) const
     {
-        Functor& instance = const_cast<Functor&>(static_cast<const Functor&>(*this));
-
-        instance(arg1, arg2);
+        functor(arg1, arg2);
     }
 };
 
@@ -252,7 +255,7 @@ struct two_or_three_args_functor<R (*)(X1, X2, X3)>
 #endif
 
 template<typename Functor>
-two_or_three_args_functor<Functor> wrap_two_or_three_args_functor(const Functor& functor)
+two_or_three_args_functor<Functor> wrap_two_or_three_args_functor(Functor functor)
 {
     return two_or_three_args_functor<Functor>(functor);
 }
@@ -399,7 +402,7 @@ private:
 
 public:
 
-    explicit range_writer(ValueWriter value_writer) :
+    explicit range_writer(const ValueWriter& value_writer) :
         m_value_writer(value_writer)
     {
     }
@@ -520,7 +523,7 @@ protected:
     }
 
     template<typename V, typename ValueWriter>
-    void write_helper(const char* field_name, const V& value, ValueWriter value_writer)
+    void write_helper(const char* field_name, const V& value, const ValueWriter& value_writer)
     {
         if (m_status == CLOSED)
         {
@@ -600,7 +603,7 @@ public:
     }
 
     template<typename V, typename ValueWriter>
-    void write(const char* field_name, const V& value, ValueWriter value_writer)
+    void write(const char* field_name, const V& value, const ValueWriter& value_writer)
     {
         write_helper(field_name, value, value_writer);
     }
@@ -639,7 +642,7 @@ public:
     }
 
     template<typename V, typename ValueWriter>
-    void write(const V& value, ValueWriter value_writer)
+    void write(const V& value, const ValueWriter& value_writer)
     {
         write_helper(NULL, value, value_writer);
     }
@@ -814,7 +817,7 @@ template<typename InputIt, typename ValueWriter>
 void write_array(
         std::ostream& stream,
         InputIt begin, InputIt end,
-        ValueWriter value_writer,
+        const ValueWriter& value_writer,
         const writer_configuration& configuration)
 {
     array_writer writer(stream, configuration);

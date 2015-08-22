@@ -274,7 +274,7 @@ namespace minijson
 template<>
 struct default_value_writer<point3d> FINAL
 {
-    void operator()(std::ostream& stream, const point3d& value, const minijson::writer_configuration& configuration) const
+    void operator()(std::ostream& stream, const point3d& value, const writer_configuration& configuration) const
     {
         minijson::object_writer writer(stream, configuration);
         writer.write("x", value.x);
@@ -286,22 +286,40 @@ struct default_value_writer<point3d> FINAL
 
 } // namespace minijson
 
+void point3d_writer_func(std::ostream& stream, const point3d& value, minijson::writer_configuration configuration)
+{
+    minijson::default_value_writer<point3d>()(stream, value, configuration);
+}
+
 TEST(minijson_writer, custom_value_writer_object)
 {
-    const point_type types[] = { FIXED, MOVING };
-
     std::stringstream stream;
 
-    const point3d point = { -1, 1, 0 };
+    const point_type types[] = { FIXED, MOVING };
+
+    const point3d point1 = { -1, 1, 0 };
+    const point3d point2 = { 1, 1, 3 };
+    std::vector<point3d> points;
+    points.push_back(point1);
+    points.push_back(point2);
 
     minijson::object_writer writer(stream);
-    writer.write("type1", FIXED, point_type_writer()); // using functor
-    writer.write("type2", MOVING, point_type_writer_func); // using function
-    writer.write("point", point); // using template specialisation
-    writer.write_array("types", types, types + 2, point_type_writer()); // write_array with functor
+    writer.write("type1", FIXED, point_type_writer()); // functor
+    writer.write("type2", MOVING, point_type_writer_func); // function
+    writer.write("point1", point1); // template specialisation
+    writer.write("point2", point2, point3d_writer_func); // function
+    writer.write_array("points", points.begin(), points.end()); // template specialisation
+    writer.write_array("types1", types, types + 2, point_type_writer()); // functor
+    writer.write_array("types2", types, types + 2, point_type_writer_func); // function
     writer.close();
 
-    ASSERT_EQ("{\"type1\":\"fixed\",\"type2\":\"moving\",\"point\":{\"x\":-1,\"y\":1,\"z\":0},\"types\":[\"fixed\",\"moving\"]}", stream.str());
+    ASSERT_EQ("{\"type1\":\"fixed\","
+               "\"type2\":\"moving\","
+               "\"point1\":{\"x\":-1,\"y\":1,\"z\":0},"
+               "\"point2\":{\"x\":1,\"y\":1,\"z\":3},"
+               "\"points\":[{\"x\":-1,\"y\":1,\"z\":0},{\"x\":1,\"y\":1,\"z\":3}],"
+               "\"types1\":[\"fixed\",\"moving\"],"
+               "\"types2\":[\"fixed\",\"moving\"]}", stream.str());
 }
 
 TEST(minijson_writer, custom_value_writer_array)
@@ -311,23 +329,51 @@ TEST(minijson_writer, custom_value_writer_array)
     {
         std::stringstream stream;
 
-        const point_type type = MOVING;
-        const point3d point = { -1, 1, 0 };
+        const point_type types[] = { FIXED, MOVING };
+
+        const point3d point1 = { -1, 1, 0 };
+        const point3d point2 = { 1, 1, 3 };
+        std::vector<point3d> points;
+        points.push_back(point1);
+        points.push_back(point2);
 
         minijson::array_writer writer(stream);
-        writer.write(type, point_type_writer()); // using functor
-        writer.write(point); // using template specialisation
-        writer.write_array(types, types + 2, point_type_writer()); // write_array with functor
+        writer.write(FIXED, point_type_writer()); // functor
+        writer.write(MOVING, point_type_writer_func); // function
+        writer.write(point1); // template specialisation
+        writer.write(point2, point3d_writer_func); // function
+        writer.write_array(points.begin(), points.end()); // template specialisation
+        writer.write_array(types, types + 2, point_type_writer()); // functor
+        writer.write_array(types, types + 2, point_type_writer_func); // function
         writer.close();
 
-        ASSERT_EQ("[\"moving\",{\"x\":-1,\"y\":1,\"z\":0},[\"fixed\",\"moving\"]]", stream.str());
+        ASSERT_EQ("[\"fixed\","
+                   "\"moving\","
+                   "{\"x\":-1,\"y\":1,\"z\":0},"
+                   "{\"x\":1,\"y\":1,\"z\":3},"
+                   "[{\"x\":-1,\"y\":1,\"z\":0},{\"x\":1,\"y\":1,\"z\":3}],"
+                   "[\"fixed\",\"moving\"],"
+                   "[\"fixed\",\"moving\"]]", stream.str());
     }
 
     {
         std::stringstream stream;
 
-        minijson::write_array(stream, types, types + 2, point_type_writer());
+        minijson::write_array(stream, types, types + 2, point_type_writer()); // functor
         ASSERT_EQ("[\"fixed\",\"moving\"]", stream.str());
+    }
+
+    {
+        const point3d point1 = { -1, 1, 0 };
+        const point3d point2 = { 1, 1, 3 };
+        std::vector<point3d> points;
+        points.push_back(point1);
+        points.push_back(point2);
+
+        std::stringstream stream;
+
+        minijson::write_array(stream, points.begin(), points.end()); // template specialisation
+        ASSERT_EQ("[{\"x\":-1,\"y\":1,\"z\":0},{\"x\":1,\"y\":1,\"z\":3}]", stream.str());
     }
 }
 
@@ -443,7 +489,7 @@ TEST(minijson_writer, pretty_printing_nested_functor)
 
     minijson::object_writer writer(stream, minijson::writer_configuration().pretty_printing(true).use_tabs(true));
     writer.write("point1", points[0]);
-    writer.write_array("array1", points.begin(), points.end());
+    writer.write_array("array", points.begin(), points.end());
     writer.close();
 
     const std::string expected =
@@ -453,7 +499,7 @@ TEST(minijson_writer, pretty_printing_nested_functor)
         "\t\t\"y\": 1,\n"
         "\t\t\"z\": 0\n"
         "\t},\n"
-        "\t\"array1\": [\n"
+        "\t\"array\": [\n"
         "\t\t{\n"
         "\t\t\t\"x\": -1,\n"
         "\t\t\t\"y\": 1,\n"

@@ -98,9 +98,10 @@ namespace minijson
 template<>
 struct default_value_writer<position>
 {
-  void operator()(std::ostream& stream, const position& p) const
+  void operator()(std::ostream& stream, const position& p,
+                  writer_configuration configuration) const
   {
-    minijson::object_writer writer(stream);
+    minijson::object_writer writer(stream, configuration);
     writer.write("n", p.n);
     writer.write("w", p.w);
     writer.close();
@@ -135,7 +136,7 @@ enum party
 
 struct party_writer
 {
-  void operator()(std::ostream& stream, const party& p) const
+  void operator()(std::ostream& stream, const party& p, minijson::writer_configuration) const
   {
     const char* s;
     switch (p)
@@ -158,15 +159,34 @@ writer.close();
 
 Similarly, a functor can be provided to `write_array` (both the method and the standalone function) to determine how each item of the range has to be written.
 
+**Deprecation notice**: in previous versions of `minijson_writer`, the third argument of type `minijson::writer_configuration` was not present. Old code will still compile, but users are encouraged to update their custom writers to the new signature. Failure to do so will break pretty-printing and possibly other upcoming features, and in the future may also break the build.
+
+## Pretty-printing
+
+Pretty-printing can be enabled by passing a second argument of type `minijson::writer_configuration` to the constructor of `object_writer` and `array_writer`.  
+`write_array` also accepts an extra argument.
+
+```
+// enable pretty-printing with default settings (use 4 spaces)
+minijson::object_writer writer(stream,
+        minijson::writer_configuration().pretty_printing(true));
+
+// use tabs
+minijson::array_writer writer(stream,
+        minijson::writer_configuration().pretty_printing(true).use_tabs(true));
+
+// use 2 spaces
+minijson::write_array(stream, elements.begin(), elements.end(),
+        minijson::writer_configuration().pretty_printing(true).indent_spaces(2));
+```
+
+When providing custom writers (either by specialising `default_value_writer` or by passing a functor), make sure you pass the `writer_configuration` argument down to the nested object/array writer that is responsible for writing the nested object/array (if any). Failure to do so will break pretty-printing and possibly other upcoming features.
+
 ## Remarks
 
 ### Encodings
 
 **ASCII** and **UTF-8** strings are supported. The output encoding depends on the encoding of the input strings (field names and values), and no transformations are performed besides escaping control characters.
-
-### Pretty-printing
-
-Pretty-printing is currently not supported.
 
 ### The stream
 
