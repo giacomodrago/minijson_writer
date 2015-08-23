@@ -66,6 +66,8 @@ struct get_value_type
 template<size_t Size = 128>
 class buffered_writer
 {
+    MJW_STATIC_ASSERT(Size != 0, "Illegal instantiation of buffered_writer");
+
 private:
 
     std::ostream& m_stream;
@@ -95,7 +97,7 @@ public:
     template<size_t N>
     buffered_writer& operator<<(const char (&str)[N])
     {
-        MJW_STATIC_ASSERT(N != 0, "Illegal use of buffered_writer::operator<<(const char (&str)[N])");
+        MJW_STATIC_ASSERT(N != 0, "Illegal instantiation of buffered_writer::operator<<(const char (&str)[N])");
 
         for (size_t i = 0; i < N - 1; i++)
         {
