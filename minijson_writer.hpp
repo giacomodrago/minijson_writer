@@ -271,6 +271,9 @@ private:
     char m_buffer[Size];
     size_t m_offset;
 
+    buffered_writer(const buffered_writer &);
+    buffered_writer &operator=(const buffered_writer &);
+
 public:
 
     explicit buffered_writer(std::ostream& stream) :
