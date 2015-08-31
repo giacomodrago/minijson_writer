@@ -553,6 +553,11 @@ protected:
     {
     }
 
+    ~writer()
+    {
+        close();
+    }
+
 public:
 
     std::ostream& stream() const

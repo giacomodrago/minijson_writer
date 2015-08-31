@@ -124,6 +124,18 @@ TEST(minijson_writer, nesting_simple)
     ASSERT_EQ("{\"nested\":{\"foo\":\"bar\"}}", stream.str());
 }
 
+TEST(minijson_writer, nesting_simple_autoclose)
+{
+    std::stringstream stream;
+    minijson::object_writer writer(stream);
+    {
+        minijson::object_writer nested_writer = writer.nested_object("nested");
+        nested_writer.write("foo", "bar");
+    }
+    writer.close();
+    ASSERT_EQ("{\"nested\":{\"foo\":\"bar\"}}", stream.str());
+}
+
 TEST(minijson_writer, nesting_complex)
 {
     std::stringstream stream;
