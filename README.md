@@ -12,7 +12,7 @@ Despite being a single header file of ~500 lines, `minijson_writer` is complete 
 
 ## Dependencies
 
-If the compiler does **not** support C++11, Boost 1.56 or better is required.
+If the compiler does **not** support C++11, Boost 1.55 or better is required.
 
 ## Basic usage
 

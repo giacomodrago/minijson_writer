@@ -193,21 +193,24 @@ TEST(minijson_writer, utf8)
     ASSERT_EQ("{\"à\\\"èẁ\\\"\":\"你\\\\好!\"}", stream.str());
 }
 
-static double return_zero() // to suppress VS2013 compiler errors
+double return_zero() // to suppress VS2013 compiler errors
 {
     return 0.0;
 }
 
+#pragma warning (push)
+#pragma warning (disable: 4723)
 TEST(minijson_writer, invalid_floats)
 {
     std::stringstream stream;
     minijson::object_writer writer(stream);
     writer.write("posinfinity", 1.0 / return_zero());
     writer.write("neginfinity", -1.0 / return_zero());
-    writer.write("nan", return_zero() / return_zero());
+    writer.write("nan", 0.0 / return_zero());
     writer.close();
     ASSERT_EQ("{\"posinfinity\":null,\"neginfinity\":null,\"nan\":null}", stream.str());
 }
+#pragma warning (pop)
 
 TEST(minijson_writer, float_formatting)
 {
