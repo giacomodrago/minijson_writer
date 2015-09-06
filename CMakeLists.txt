@@ -9,7 +9,7 @@
 #   $ ./minijson_writer_tests
 # You can append -DCPP11:int=1 to the cmake command to build in C++11 mode.
 
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 2.8.7)
 project(minijson_writer)
 
 if(MSVC)
