@@ -21,7 +21,10 @@
 
 #else
 
-#include <boost/type_traits.hpp>
+#include <boost/type_traits/remove_cv.hpp>
+#include <boost/type_traits/is_integral.hpp>
+#include <boost/type_traits/is_same.hpp>
+#include <boost/type_traits/is_floating_point.hpp>
 #include <boost/math/special_functions/fpclassify.hpp>
 #define MJW_LIB_NS boost
 #define MJW_ISFINITE(X) boost::math::isfinite(X)
