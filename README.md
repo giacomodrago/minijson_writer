@@ -8,7 +8,7 @@ When writing JSON messages, some C/C++ libraries work by building an in-memory o
 
 `minijson_writer` is a simple decorator around a `std::ostream`. It directly writes on the stream without allocating additional memory, and does not throw exceptions unless the stream does.
 
-Despite being a single header file of ~500 lines, `minijson_writer` is complete and can be easily extended to support custom types.
+Despite being a single header file of ~900 LOC, `minijson_writer` is complete and can be easily extended to support custom types.
 
 [`minijson_reader`](https://github.com/giacomodrago/minijson_reader) is the independent counterpart for parsing JSON messages.
 
